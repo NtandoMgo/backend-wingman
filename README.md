@@ -22,7 +22,7 @@ This is the backend for the **Wingman** dating app. The backend is built using *
 
 Wingman is a dating app specifically for students. The backend API handles:
 
-- **User Registration and Authentication**: Users can sign up with valid tertiary institution email domains (e.g., `@university.edu`).
+- **User Registration and Authentication**: Users can sign up with valid tertiary institution email domains (e.g., `@myuct.ac.za`).
 - **Messaging**: Users can send and receive messages.
 - **Meetups**: Users can create and join meetups.
 

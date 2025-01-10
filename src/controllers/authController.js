@@ -1,9 +1,25 @@
 const User = require('../models/user');
 const jwt = require('jsonwebtoken');
 
+// Allowed tertiary domains 
+const allowedDomains = [
+  'myuct.ac.za', // Example domain for University of Cape Town
+];
+
+// Function to check if the email has a valid domain
+const isValidEmailDomain = (email) => {
+  const domain = email.split('@')[1]; // Get the domain part of the email
+  return allowedDomains.includes(domain); // Check if the domain is in the allowed list
+};
+
 // Registration controller
 const registerUser = async (req, res) => {
   const { username, email, password } = req.body;
+
+  // Check if the email has a valid domain
+  if (!isValidEmailDomain(email)) {
+    return res.status(400).json({ message: 'Email must belong to a valid tertiary institution domain.' });
+  }
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {

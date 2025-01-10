@@ -1,5 +1,4 @@
 
-```markdown
 # Wingman Backend API
 
 This is the backend for the **Wingman** dating app. The backend is built using **Node.js**, **Express.js**, and **MongoDB**. It handles user authentication, messaging, and meetups for students only, with email domain validation for registration.

@@ -33,11 +33,9 @@ const registerUser = async (req, res) => {
   }
 
   try {
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create a new user
-    const newUser = new User({ username, email, password: hashedPassword });
+    const newUser = new User({ username, email, password});
 
     // Save the user to the database
     await newUser.save();
@@ -53,21 +51,35 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email });
-  if (!user) {
-    return res.status(400).json({ message: 'User not found' });
+  try {
+    // Fetch the user by email
+    const user = await User.findOne({ email });
+
+    // If user is not found
+    if (!user) {
+      return res.status(400).json({ message: 'User not found' });
+    }
+
+    // Compare the entered password with the stored hashed password
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    // If passwords do not match
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // Create a JWT token
+    const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, {
+      expiresIn: '1h',
+    });
+
+    // Respond with success and the token
+    res.status(200).json({ message: 'Login successful', token });
+
+  } catch (err) {
+    console.error('Error during login:', err);
+    res.status(500).json({ message: 'Internal server error', error: err.message });
   }
-
-  const isMatch = await user.comparePassword(password);
-  if (!isMatch) {
-    return res.status(400).json({ message: 'Invalid credentials' });
-  }
-
-  const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, {
-    expiresIn: '1h',
-  });
-
-  res.status(200).json({ message: 'Login successful', token });
 };
 
 module.exports = { registerUser, loginUser };

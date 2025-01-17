@@ -1,4 +1,9 @@
-require('dotenv').config();  // Import dotenv to use environment variables
+require('dotenv').config();  // dotenv to use environment variables
+
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL ERROR: JWT_SECRET is not defined.');
+  process.exit(1);
+}
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');  // Optional, if you need CORS for frontend

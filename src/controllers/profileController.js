@@ -1,76 +1,33 @@
+const User = require('../models/user');
 const Profile = require('../models/profile');
 
-// Create or update entire profile
+// Update user profile
 const updateFullProfile = async (req, res) => {
   try {
-    const userId = req.user.id; // From auth middleware
-    const profileData = {
-      user: userId,
-      // Basic Information
-      name: req.body.name,
-      username: req.body.username,
-      gender: req.body.gender,
-      interestedIn: req.body.interestedIn,
+    const userId = req.user.id; // Auth middleware extracts user ID
+    const updateData = { ...req.body }; // Copy request body
 
-      // Academic Information
-      university: req.body.university,
-      yearOfStudy: req.body.yearOfStudy,
-      degree: req.body.degree,
-      residence: req.body.residence,
-
-      // About Me
-      shortBio: req.body.shortBio,
-      aboutMe: req.body.aboutMe,
-      
-      // Multiple Selection Fields
-      personalityTraits: req.body.personalityTraits,
-      lookingFor: req.body.lookingFor,
-      languages: req.body.languages,
-      
-      // Additional Information
-      starSign: req.body.starSign,
-      
-      // Settings & Preferences
-      settings: {
-        activityStatus: req.body.settings?.activityStatus || 'Available',
-        showInMeetups: req.body.settings?.showInMeetups ?? true,
-        darkMode: req.body.settings?.darkMode ?? false,
-        accountStatus: 'Active'
+    // Ensure username is not duplicated
+    if (updateData.username) {
+      const existingUser = await User.findOne({ username: updateData.username });
+      if (existingUser && existingUser._id.toString() !== userId) {
+        return res.status(400).json({ message: 'Username already taken' });
       }
-    };
-
-    // If photos are included in the request
-    if (req.body.photos) {
-      profileData.photos = req.body.photos;
     }
 
-    // Find and update profile, create if doesn't exist
-    const profile = await Profile.findOneAndUpdate(
-      { user: userId },
-      profileData,
-      { 
-        new: true, // Return updated document
-        upsert: true, // Create if doesn't exist
-        runValidators: true // Run schema validations
-      }
-    );
+    // Update user data
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select('-password'); // Exclude password from response
 
     res.status(200).json({
       message: 'Profile updated successfully',
-      profile
+      user
     });
-
   } catch (error) {
     console.error('Profile update error:', error);
-    
-    // Handle specific errors
-    if (error.code === 11000) { // Duplicate key error
-      return res.status(400).json({
-        message: 'Username already taken',
-        error: error.message
-      });
-    }
-
     res.status(500).json({
       message: 'Error updating profile',
       error: error.message
@@ -78,24 +35,20 @@ const updateFullProfile = async (req, res) => {
   }
 };
 
-// Get user's own profile
+// Get user profile
 const getOwnProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    const profile = await Profile.findOne({ user: userId });
+    const user = await User.findById(userId).select('-password'); // Exclude password
 
-    if (!profile) {
-      return res.status(404).json({ 
-        message: 'Profile not found',
-        exists: false
-      });
+    if (!user) {
+      return res.status(404).json({ message: 'Profile not found', exists: false });
     }
 
     res.status(200).json({
       exists: true,
-      profile
+      user
     });
-
   } catch (error) {
     console.error('Profile fetch error:', error);
     res.status(500).json({
@@ -105,7 +58,35 @@ const getOwnProfile = async (req, res) => {
   }
 };
 
-module.exports = {
-  updateFullProfile,
-  getOwnProfile
+// Get user profile by user ID
+const getUserProfile = async (req, res) => {
+  try {
+    const userId = req.user.id; // Get the user ID from the authentication middleware
+
+    // Fetch user with their profile data
+    const user = await User.findById(userId).populate('profile'); // 'profile' will populate the associated profile data
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({
+      message: 'Profile fetched successfully',
+      user: {
+        id: user._id,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        profile: user.profile // Include profile data
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    res.status(500).json({
+      message: 'Error fetching profile',
+      error: error.message
+    });
+  }
 };
+
+module.exports = { updateFullProfile, getOwnProfile, getUserProfile };

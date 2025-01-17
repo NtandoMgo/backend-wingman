@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
+const Profile = require('../models/profile'); // Ensure Profile is imported
 const jwt = require('jsonwebtoken');
 
 // Allowed tertiary domains
@@ -15,35 +16,44 @@ const isValidEmailDomain = (email) => {
 
 // Registration controller
 const registerUser = async (req, res) => {
-  const { username, email, password } = req.body;
-
-  // Validate inputs
-  if (!username || !email || !password) {
-    return res.status(400).json({ message: 'All fields (username, email, password) are required' });
-  }
-
-  if (!isValidEmailDomain(email)) {
-    return res.status(400).json({ message: 'Email must belong to a valid tertiary institution domain.' });
-  }
-
-  // Check if the user already exists
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    return res.status(400).json({ message: 'User already exists' });
-  }
-
   try {
+    const { name, username, email, password } = req.body;
+
+    // Ensure all required fields are provided
+    if (!name || !username || !email || !password) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    // Check if username is already taken
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Username is already taken' });
+    }
+
+    // Check if email is already registered
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+      return res.status(400).json({ message: 'Email is already registered' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create a new user
-    const newUser = new User({ username, email, password});
+    const newUser = new User({ name, username, email, password: hashedPassword });
 
-    // Save the user to the database
+    // Create an empty profile for the user
+    const profile = await Profile.create({ user: newUser._id });
+
+    // Link profile to user
+    newUser.profile = profile._id;
+
+    // Save user with the linked profile
     await newUser.save();
 
-    res.status(201).json({ message: 'User created successfully' });
-  } catch (err) {
-    console.error('Error creating user:', err);  // Log error details
-    res.status(500).json({ message: 'Error creating user', error: err.message });
+    res.status(201).json({ message: 'User registered successfully', userId: newUser._id });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 

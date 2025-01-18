@@ -45,14 +45,14 @@ const registerUser = async (req, res) => {
       await session.startTransaction();
 
       // Hash password
-      const hashedPassword = await bcrypt.hash(password, 10);
+      //const hashedPassword = await bcrypt.hash(password, 10);
 
       // Create user first
       const newUser = await User.create([{
         name,
         username,
         email,
-        password: hashedPassword
+        password
       }], { session });
 
       // Create profile with the username

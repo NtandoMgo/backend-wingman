@@ -6,7 +6,7 @@ if (!process.env.JWT_SECRET) {
 }
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');  // Optional, if you need CORS for frontend
+const cors = require('cors');  
 const authRoutes = require('./routes/authRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const messageRoutes = require('./routes/messageRoutes');
@@ -16,7 +16,10 @@ const app = express();
 
 // Middleware
 app.use(express.json());  // For parsing JSON requests
-app.use(cors());  // Enable CORS if required
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}));
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
